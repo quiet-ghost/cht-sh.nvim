@@ -17,8 +17,48 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 end
 
+local function strip_ansi_codes(text)
+  return text:gsub("\27%[[0-9;]*m", "")
+end
+
+local function get_language_from_filetype(filetype)
+  local lang_map = {
+    javascript = "js",
+    typescript = "js",
+    typescriptreact = "js",
+    javascriptreact = "js",
+    python = "python",
+    lua = "lua",
+    rust = "rust",
+    go = "go",
+    cpp = "cpp",
+    c = "c",
+    java = "java",
+    php = "php",
+    ruby = "ruby",
+    shell = "bash",
+    sh = "bash",
+    bash = "bash",
+    zsh = "bash",
+    vim = "vim",
+    sql = "sql",
+    html = "html",
+    css = "css",
+    scss = "css",
+    sass = "css",
+    json = "json",
+    yaml = "yaml",
+    yml = "yaml",
+    markdown = "markdown",
+    dockerfile = "docker",
+    makefile = "make",
+  }
+  
+  return lang_map[filetype] or filetype
+end
+
 function M.fetch_cheat_sheet(query)
-  local url = M.config.base_url .. query
+  local url = M.config.base_url .. query .. "?T"
   local cmd = string.format("curl -s '%s'", url)
   
   local handle = io.popen(cmd)
@@ -31,7 +71,17 @@ function M.fetch_cheat_sheet(query)
   handle:close()
   
   if result and result ~= "" then
-    return vim.split(result, "\n")
+    local clean_result = strip_ansi_codes(result)
+    local lines = vim.split(clean_result, "\n")
+    
+    local filtered_lines = {}
+    for _, line in ipairs(lines) do
+      if line:match("%S") then
+        table.insert(filtered_lines, line)
+      end
+    end
+    
+    return #filtered_lines > 0 and filtered_lines or {"No results found for: " .. query}
   else
     return {"No results found for: " .. query}
   end
@@ -69,11 +119,20 @@ function M.show_result_picker(query, results)
 end
 
 function M.search()
-  vim.ui.input({ prompt = "cht.sh query: " }, function(input)
+  local filetype = vim.bo.filetype
+  local lang = filetype ~= "" and get_language_from_filetype(filetype) or ""
+  local prompt = lang ~= "" and string.format("cht.sh query (%s): ", lang) or "cht.sh query: "
+  
+  vim.ui.input({ prompt = prompt }, function(input)
     if input and input ~= "" then
-      local results = M.fetch_cheat_sheet(input)
+      local query = input
+      if lang ~= "" and not input:match("/") then
+        query = lang .. "/" .. input
+      end
+      
+      local results = M.fetch_cheat_sheet(query)
       if results then
-        M.show_result_picker(input, results)
+        M.show_result_picker(query, results)
       end
     end
   end)
@@ -83,7 +142,8 @@ function M.search_current_word()
   local word = vim.fn.expand("<cword>")
   if word and word ~= "" then
     local filetype = vim.bo.filetype
-    local query = filetype ~= "" and (filetype .. "/" .. word) or word
+    local lang = filetype ~= "" and get_language_from_filetype(filetype) or ""
+    local query = lang ~= "" and (lang .. "/" .. word) or word
     
     local results = M.fetch_cheat_sheet(query)
     if results then
@@ -91,6 +151,21 @@ function M.search_current_word()
     end
   else
     vim.notify("No word under cursor", vim.log.levels.WARN)
+  end
+end
+
+function M.search_language()
+  local filetype = vim.bo.filetype
+  local lang = filetype ~= "" and get_language_from_filetype(filetype) or ""
+  
+  if lang == "" then
+    vim.notify("No language detected for current buffer", vim.log.levels.WARN)
+    return
+  end
+  
+  local results = M.fetch_cheat_sheet(lang)
+  if results then
+    M.show_result_picker(lang, results)
   end
 end
 

@@ -22,7 +22,7 @@ A Neovim plugin that integrates [cht.sh](https://cht.sh) with Telescope for quic
 
 ```lua
 {
-  'your-username/cht-sh.nvim',
+  'quiet-ghost/cht-sh.nvim',
   dependencies = { 'nvim-telescope/telescope.nvim' },
   config = function()
     require('cht-sh').setup()
@@ -34,7 +34,7 @@ A Neovim plugin that integrates [cht.sh](https://cht.sh) with Telescope for quic
 
 ```lua
 use {
-  'your-username/cht-sh.nvim',
+  'quiet-ghost/cht-sh.nvim',
   requires = { 'nvim-telescope/telescope.nvim' },
   config = function()
     require('cht-sh').setup()
@@ -46,14 +46,16 @@ use {
 
 ### Commands
 
-- `:ChtSh` - Open search prompt
+- `:ChtSh` - Open search prompt (auto-detects current language)
 - `:ChtSh <query>` - Search directly for query
-- `:ChtShWord` - Search for word under cursor
+- `:ChtShWord` - Search for word under cursor with language context
+- `:ChtShLang` - Show cheat sheet for current language
 
 ### Default Keymaps
 
-- `<leader>ch` - Open cht.sh search
+- `<leader>ch` - Open cht.sh search (language-aware)
 - `<leader>cw` - Search word under cursor
+- `<leader>cl` - Show cheat sheet for current language
 
 ### In Telescope Picker
 
