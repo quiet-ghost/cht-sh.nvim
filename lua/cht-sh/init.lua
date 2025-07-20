@@ -120,17 +120,28 @@ end
 function M.show_result_picker(query, results)
   local filetype = get_filetype_from_query(query)
   
+  local function create_highlighted_buffer()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, results)
+    vim.api.nvim_buf_set_option(buf, 'filetype', filetype)
+    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+    return buf
+  end
+  
   pickers.new({}, {
     prompt_title = "cht.sh: " .. query,
+    results_title = "Results (" .. filetype .. ")",
     finder = finders.new_table {
       results = results,
     },
     sorter = conf.generic_sorter({}),
+    layout_config = {
+      preview_width = 0.6,
+    },
     previewer = require('telescope.previewers').new_buffer_previewer({
-      title = "Preview",
+      title = "Full Content",
       define_preview = function(self, entry, status)
-        local content = type(entry.value) == "string" and entry.value or tostring(entry.value)
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {content})
+        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, results)
         vim.api.nvim_buf_set_option(self.state.bufnr, 'filetype', filetype)
       end
     }),
@@ -151,6 +162,20 @@ function M.show_result_picker(query, results)
           vim.fn.setreg('"', selection.value)
           vim.notify("Yanked: " .. selection.value:sub(1, 50) .. "...")
         end
+      end)
+      
+      map('i', '<C-v>', function()
+        actions.close(prompt_bufnr)
+        local buf = create_highlighted_buffer()
+        vim.cmd('vsplit')
+        vim.api.nvim_win_set_buf(0, buf)
+      end)
+      
+      map('n', '<C-v>', function()
+        actions.close(prompt_bufnr)
+        local buf = create_highlighted_buffer()
+        vim.cmd('vsplit')
+        vim.api.nvim_win_set_buf(0, buf)
       end)
       
       return true

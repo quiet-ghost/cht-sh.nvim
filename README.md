@@ -61,6 +61,7 @@ use {
 
 - `<Enter>` - Copy selected line to clipboard and close
 - `<C-y>` - Copy selected line to clipboard (stay in picker)
+- `<C-v>` - Open full results in new vertical split with syntax highlighting
 - `<Esc>` - Close picker
 
 ## Configuration
