@@ -59,17 +59,18 @@ use {
 
 ### In Telescope Picker
 
-- `<Enter>` - Open full results buffer with syntax highlighting
+- `<Enter>` - Open floating popup with full results
 - `<C-y>` - Copy selected line to clipboard (stay in picker)
 - `<Esc>` - Close picker
 
-### In Results Buffer
+### In Popup Window
 
+- **Navigation** - Use `j/k`, `<C-d>/<C-u>`, `gg/G` etc.
 - **Visual mode** - Select multiple lines with `v`, `V`, or `<C-v>`
 - `y` - Yank selected text in visual mode
 - `yy` - Yank current line
 - `Y` - Yank entire cheat sheet
-- `q` or `<Esc>` - Close buffer
+- `q`, `<Esc>`, or `<C-c>` - Close popup
 
 ## Configuration
 

@@ -120,16 +120,34 @@ end
 function M.show_result_picker(query, results)
   local filetype = get_filetype_from_query(query)
   
-  local function open_results_buffer()
+  local function create_popup()
+    local width = math.floor(vim.o.columns * 0.8)
+    local height = math.floor(vim.o.lines * 0.8)
+    local row = math.floor((vim.o.lines - height) / 2)
+    local col = math.floor((vim.o.columns - width) / 2)
+    
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, results)
     vim.api.nvim_buf_set_option(buf, 'filetype', filetype)
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
     
-    vim.cmd('vsplit')
-    vim.api.nvim_win_set_buf(0, buf)
+    local win_config = {
+      relative = 'editor',
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = 'minimal',
+      border = 'rounded',
+      title = " cht.sh: " .. query .. " ",
+      title_pos = 'center',
+    }
     
-    local function setup_buffer_keymaps()
+    local win = vim.api.nvim_open_win(buf, true, win_config)
+    
+    local function setup_popup_keymaps()
       local opts = { buffer = buf, silent = true }
       
       vim.keymap.set('n', 'yy', function()
@@ -150,22 +168,24 @@ function M.show_result_picker(query, results)
       end, opts)
       
       vim.keymap.set('n', 'q', function()
-        vim.cmd('close')
+        vim.api.nvim_win_close(win, true)
       end, opts)
       
       vim.keymap.set('n', '<Esc>', function()
-        vim.cmd('close')
+        vim.api.nvim_win_close(win, true)
+      end, opts)
+      
+      vim.keymap.set('n', '<C-c>', function()
+        vim.api.nvim_win_close(win, true)
       end, opts)
     end
     
-    setup_buffer_keymaps()
-    
-    vim.api.nvim_buf_set_name(buf, "cht.sh: " .. query)
-    vim.notify("Use visual mode to select, 'y' to yank, 'Y' for all, 'q' to quit")
+    setup_popup_keymaps()
+    vim.notify("Navigate with j/k, visual select + y to yank, q/Esc to close")
   end
   
   pickers.new({}, {
-    prompt_title = "cht.sh: " .. query .. " (Press <Enter> to open full buffer)",
+    prompt_title = "cht.sh: " .. query .. " (Press <Enter> to open popup)",
     finder = finders.new_table {
       results = results,
     },
@@ -174,7 +194,7 @@ function M.show_result_picker(query, results)
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
         actions.close(prompt_bufnr)
-        open_results_buffer()
+        create_popup()
       end)
       
       map('i', '<C-y>', function()
