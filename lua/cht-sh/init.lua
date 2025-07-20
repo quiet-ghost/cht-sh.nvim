@@ -170,9 +170,7 @@ function M.show_result_picker(query, results)
       results = results,
     },
     sorter = conf.generic_sorter({}),
-    layout_config = {
-      preview = false,
-    },
+    previewer = false,
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
         actions.close(prompt_bufnr)
