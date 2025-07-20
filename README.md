@@ -1,19 +1,18 @@
 # cht-sh.nvim
 
-A Neovim plugin that integrates [cht.sh](https://cht.sh) with Telescope for quick cheat sheet lookups without leaving your editor.
+A Neovim plugin that integrates [cht.sh](https://cht.sh) for quick cheat sheet lookups in a floating popup window without leaving your editor.
 
 ## Features
 
-- 🔍 Search cht.sh directly from Neovim
-- 🎯 Quick lookup for word under cursor with filetype context
-- 📋 Copy results to clipboard with `<Enter>` or `<C-y>`
-- ⚡ Fast Telescope-based UI
-- 🚀 Minimal workflow interruption
+- Search cht.sh directly from Neovim
+- Quick lookup for word under cursor with filetype context
+- Floating popup window with syntax highlighting
+- Visual selection and yanking capabilities
+- Minimal workflow interruption
 
 ## Requirements
 
 - Neovim >= 0.7
-- [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 - `curl` (for API requests)
 
 ## Installation
@@ -23,7 +22,6 @@ A Neovim plugin that integrates [cht.sh](https://cht.sh) with Telescope for quic
 ```lua
 {
   'quiet-ghost/cht-sh.nvim',
-  dependencies = { 'nvim-telescope/telescope.nvim' },
   config = function()
     require('cht-sh').setup()
   end
@@ -35,7 +33,6 @@ A Neovim plugin that integrates [cht.sh](https://cht.sh) with Telescope for quic
 ```lua
 use {
   'quiet-ghost/cht-sh.nvim',
-  requires = { 'nvim-telescope/telescope.nvim' },
   config = function()
     require('cht-sh').setup()
   end
@@ -85,8 +82,9 @@ require('cht-sh').setup({
 ## Tips
 
 - The plugin automatically adds filetype context when searching word under cursor
-- Use `<C-y>` to yank multiple lines without closing the picker
-- Results are automatically copied to the default register for easy pasting
+- Use visual mode to select multiple lines and yank with `y`
+- Results are syntax highlighted based on the detected language
+- The popup window supports all standard Vim navigation and selection commands
 
 ## License
 
