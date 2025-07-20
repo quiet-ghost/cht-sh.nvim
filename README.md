@@ -55,7 +55,7 @@ use {
 
 - `<leader>ch` - Open cht.sh search (language-aware)
 - `<leader>cw` - Search word under cursor
-- `<leader>cl` - Show cheat sheet for current language
+- `<leader>cL` - Show cheat sheet for current language
 
 ### In Telescope Picker
 

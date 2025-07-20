@@ -34,7 +34,7 @@ end, {
 local function setup_default_keymaps()
   vim.keymap.set('n', '<leader>ch', function() cht_sh.search() end, { desc = 'Search cht.sh' })
   vim.keymap.set('n', '<leader>cw', function() cht_sh.search_current_word() end, { desc = 'Search cht.sh for current word' })
-  vim.keymap.set('n', '<leader>cl', function() cht_sh.search_language() end, { desc = 'Show cht.sh for current language' })
+  vim.keymap.set('n', '<leader>cL', function() cht_sh.search_language() end, { desc = 'Show cht.sh cheat sheet for current language' })
 end
 
 setup_default_keymaps()

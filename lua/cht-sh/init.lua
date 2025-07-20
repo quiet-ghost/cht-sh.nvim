@@ -58,7 +58,7 @@ local function get_language_from_filetype(filetype)
 end
 
 function M.fetch_cheat_sheet(query)
-  local url = M.config.base_url .. query .. "?T"
+  local url = M.config.base_url .. query
   local cmd = string.format("curl -s '%s'", url)
   
   local handle = io.popen(cmd)
@@ -81,19 +81,59 @@ function M.fetch_cheat_sheet(query)
       end
     end
     
-    return #filtered_lines > 0 and filtered_lines or {"No results found for: " .. query}
+    return #filtered_lines > 0 and filtered_lines or {"No results found for: " .. query}, query
   else
-    return {"No results found for: " .. query}
+    return {"No results found for: " .. query}, query
   end
 end
 
+local function get_filetype_from_query(query)
+  local lang_to_ft = {
+    js = "javascript",
+    javascript = "javascript", 
+    python = "python",
+    lua = "lua",
+    rust = "rust",
+    go = "go",
+    cpp = "cpp",
+    c = "c",
+    java = "java",
+    php = "php",
+    ruby = "ruby",
+    bash = "bash",
+    shell = "bash",
+    sh = "bash",
+    vim = "vim",
+    sql = "sql",
+    html = "html",
+    css = "css",
+    json = "json",
+    yaml = "yaml",
+    dockerfile = "dockerfile",
+    make = "make",
+  }
+  
+  local lang = query:match("^([^/]+)/")
+  return lang and lang_to_ft[lang] or "text"
+end
+
 function M.show_result_picker(query, results)
+  local filetype = get_filetype_from_query(query)
+  
   pickers.new({}, {
     prompt_title = "cht.sh: " .. query,
     finder = finders.new_table {
       results = results,
     },
     sorter = conf.generic_sorter({}),
+    previewer = require('telescope.previewers').new_buffer_previewer({
+      title = "Preview",
+      define_preview = function(self, entry, status)
+        local content = type(entry.value) == "string" and entry.value or tostring(entry.value)
+        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {content})
+        vim.api.nvim_buf_set_option(self.state.bufnr, 'filetype', filetype)
+      end
+    }),
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
         local selection = action_state.get_selected_entry()
@@ -130,9 +170,9 @@ function M.search()
         query = lang .. "/" .. input
       end
       
-      local results = M.fetch_cheat_sheet(query)
+      local results, final_query = M.fetch_cheat_sheet(query)
       if results then
-        M.show_result_picker(query, results)
+        M.show_result_picker(final_query, results)
       end
     end
   end)
@@ -145,9 +185,9 @@ function M.search_current_word()
     local lang = filetype ~= "" and get_language_from_filetype(filetype) or ""
     local query = lang ~= "" and (lang .. "/" .. word) or word
     
-    local results = M.fetch_cheat_sheet(query)
+    local results, final_query = M.fetch_cheat_sheet(query)
     if results then
-      M.show_result_picker(query, results)
+      M.show_result_picker(final_query, results)
     end
   else
     vim.notify("No word under cursor", vim.log.levels.WARN)
@@ -163,9 +203,9 @@ function M.search_language()
     return
   end
   
-  local results = M.fetch_cheat_sheet(lang)
+  local results, final_query = M.fetch_cheat_sheet(lang)
   if results then
-    M.show_result_picker(lang, results)
+    M.show_result_picker(final_query, results)
   end
 end
 
