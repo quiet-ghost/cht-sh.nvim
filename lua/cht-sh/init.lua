@@ -120,40 +120,63 @@ end
 function M.show_result_picker(query, results)
   local filetype = get_filetype_from_query(query)
   
-  local function create_highlighted_buffer()
+  local function open_results_buffer()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, results)
     vim.api.nvim_buf_set_option(buf, 'filetype', filetype)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-    return buf
+    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+    
+    vim.cmd('vsplit')
+    vim.api.nvim_win_set_buf(0, buf)
+    
+    local function setup_buffer_keymaps()
+      local opts = { buffer = buf, silent = true }
+      
+      vim.keymap.set('n', 'yy', function()
+        local line = vim.api.nvim_get_current_line()
+        vim.fn.setreg('"', line)
+        vim.notify("Yanked: " .. line:sub(1, 50) .. "...")
+      end, opts)
+      
+      vim.keymap.set('v', 'y', function()
+        vim.cmd('normal! "vy')
+        local yanked = vim.fn.getreg('"')
+        vim.notify("Yanked " .. vim.fn.len(vim.split(yanked, '\n')) .. " lines")
+      end, opts)
+      
+      vim.keymap.set('n', 'Y', function()
+        vim.cmd('normal! ggVG"yy')
+        vim.notify("Yanked entire cheat sheet")
+      end, opts)
+      
+      vim.keymap.set('n', 'q', function()
+        vim.cmd('close')
+      end, opts)
+      
+      vim.keymap.set('n', '<Esc>', function()
+        vim.cmd('close')
+      end, opts)
+    end
+    
+    setup_buffer_keymaps()
+    
+    vim.api.nvim_buf_set_name(buf, "cht.sh: " .. query)
+    vim.notify("Use visual mode to select, 'y' to yank, 'Y' for all, 'q' to quit")
   end
   
   pickers.new({}, {
-    prompt_title = "cht.sh: " .. query,
-    results_title = "Results (" .. filetype .. ")",
+    prompt_title = "cht.sh: " .. query .. " (Press <Enter> to open full buffer)",
     finder = finders.new_table {
       results = results,
     },
     sorter = conf.generic_sorter({}),
     layout_config = {
-      preview_width = 0.6,
+      preview = false,
     },
-    previewer = require('telescope.previewers').new_buffer_previewer({
-      title = "Full Content",
-      define_preview = function(self, entry, status)
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, results)
-        vim.api.nvim_buf_set_option(self.state.bufnr, 'filetype', filetype)
-      end
-    }),
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
-        local selection = action_state.get_selected_entry()
         actions.close(prompt_bufnr)
-        
-        if selection then
-          vim.fn.setreg('"', selection.value)
-          vim.notify("Copied to clipboard: " .. selection.value:sub(1, 50) .. "...")
-        end
+        open_results_buffer()
       end)
       
       map('i', '<C-y>', function()
@@ -162,20 +185,6 @@ function M.show_result_picker(query, results)
           vim.fn.setreg('"', selection.value)
           vim.notify("Yanked: " .. selection.value:sub(1, 50) .. "...")
         end
-      end)
-      
-      map('i', '<C-v>', function()
-        actions.close(prompt_bufnr)
-        local buf = create_highlighted_buffer()
-        vim.cmd('vsplit')
-        vim.api.nvim_win_set_buf(0, buf)
-      end)
-      
-      map('n', '<C-v>', function()
-        actions.close(prompt_bufnr)
-        local buf = create_highlighted_buffer()
-        vim.cmd('vsplit')
-        vim.api.nvim_win_set_buf(0, buf)
       end)
       
       return true
