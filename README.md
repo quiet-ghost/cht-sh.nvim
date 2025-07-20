@@ -57,12 +57,6 @@ use {
 - `<leader>cw` - Search word under cursor
 - `<leader>cL` - Show cheat sheet for current language
 
-### In Telescope Picker
-
-- `<Enter>` - Open floating popup with full results
-- `<C-y>` - Copy selected line to clipboard (stay in picker)
-- `<Esc>` - Close picker
-
 ### In Popup Window
 
 - **Navigation** - Use `j/k`, `<C-d>/<C-u>`, `gg/G` etc.

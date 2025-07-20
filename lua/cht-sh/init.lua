@@ -117,97 +117,70 @@ local function get_filetype_from_query(query)
   return lang and lang_to_ft[lang] or "text"
 end
 
-function M.show_result_picker(query, results)
+function M.show_result_popup(query, results)
   local filetype = get_filetype_from_query(query)
   
-  local function create_popup()
-    local width = math.floor(vim.o.columns * 0.8)
-    local height = math.floor(vim.o.lines * 0.8)
-    local row = math.floor((vim.o.lines - height) / 2)
-    local col = math.floor((vim.o.columns - width) / 2)
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+  
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, results)
+  vim.api.nvim_buf_set_option(buf, 'filetype', filetype)
+  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+  vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+  
+  local win_config = {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+    title = " cht.sh: " .. query .. " ",
+    title_pos = 'center',
+  }
+  
+  local win = vim.api.nvim_open_win(buf, true, win_config)
+  
+  local function setup_popup_keymaps()
+    local opts = { buffer = buf, silent = true }
     
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, results)
-    vim.api.nvim_buf_set_option(buf, 'filetype', filetype)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+    vim.keymap.set('n', 'yy', function()
+      local line = vim.api.nvim_get_current_line()
+      vim.fn.setreg('"', line)
+      vim.notify("Yanked: " .. line:sub(1, 50) .. "...")
+    end, opts)
     
-    local win_config = {
-      relative = 'editor',
-      width = width,
-      height = height,
-      row = row,
-      col = col,
-      style = 'minimal',
-      border = 'rounded',
-      title = " cht.sh: " .. query .. " ",
-      title_pos = 'center',
-    }
+    vim.keymap.set('v', 'y', function()
+      vim.cmd('normal! "vy')
+      local yanked = vim.fn.getreg('"')
+      vim.notify("Yanked " .. vim.fn.len(vim.split(yanked, '\n')) .. " lines")
+    end, opts)
     
-    local win = vim.api.nvim_open_win(buf, true, win_config)
+    vim.keymap.set('n', 'Y', function()
+      vim.cmd('normal! ggVG"yy')
+      vim.notify("Yanked entire cheat sheet")
+    end, opts)
     
-    local function setup_popup_keymaps()
-      local opts = { buffer = buf, silent = true }
-      
-      vim.keymap.set('n', 'yy', function()
-        local line = vim.api.nvim_get_current_line()
-        vim.fn.setreg('"', line)
-        vim.notify("Yanked: " .. line:sub(1, 50) .. "...")
-      end, opts)
-      
-      vim.keymap.set('v', 'y', function()
-        vim.cmd('normal! "vy')
-        local yanked = vim.fn.getreg('"')
-        vim.notify("Yanked " .. vim.fn.len(vim.split(yanked, '\n')) .. " lines")
-      end, opts)
-      
-      vim.keymap.set('n', 'Y', function()
-        vim.cmd('normal! ggVG"yy')
-        vim.notify("Yanked entire cheat sheet")
-      end, opts)
-      
-      vim.keymap.set('n', 'q', function()
-        vim.api.nvim_win_close(win, true)
-      end, opts)
-      
-      vim.keymap.set('n', '<Esc>', function()
-        vim.api.nvim_win_close(win, true)
-      end, opts)
-      
-      vim.keymap.set('n', '<C-c>', function()
-        vim.api.nvim_win_close(win, true)
-      end, opts)
-    end
+    vim.keymap.set('n', 'q', function()
+      vim.api.nvim_win_close(win, true)
+    end, opts)
     
-    setup_popup_keymaps()
-    vim.notify("Navigate with j/k, visual select + y to yank, q/Esc to close")
+    vim.keymap.set('n', '<Esc>', function()
+      vim.api.nvim_win_close(win, true)
+    end, opts)
+    
+    vim.keymap.set('n', '<C-c>', function()
+      vim.api.nvim_win_close(win, true)
+    end, opts)
   end
   
-  pickers.new({}, {
-    prompt_title = "cht.sh: " .. query .. " (Press <Enter> to open popup)",
-    finder = finders.new_table {
-      results = results,
-    },
-    sorter = conf.generic_sorter({}),
-    previewer = false,
-    attach_mappings = function(prompt_bufnr, map)
-      actions.select_default:replace(function()
-        actions.close(prompt_bufnr)
-        create_popup()
-      end)
-      
-      map('i', '<C-y>', function()
-        local selection = action_state.get_selected_entry()
-        if selection then
-          vim.fn.setreg('"', selection.value)
-          vim.notify("Yanked: " .. selection.value:sub(1, 50) .. "...")
-        end
-      end)
-      
-      return true
-    end,
-  }):find()
+  setup_popup_keymaps()
+  vim.notify("Navigate with j/k, visual select + y to yank, q/Esc to close")
 end
 
 function M.search()
@@ -224,7 +197,7 @@ function M.search()
       
       local results, final_query = M.fetch_cheat_sheet(query)
       if results then
-        M.show_result_picker(final_query, results)
+        M.show_result_popup(final_query, results)
       end
     end
   end)
@@ -239,7 +212,7 @@ function M.search_current_word()
     
     local results, final_query = M.fetch_cheat_sheet(query)
     if results then
-      M.show_result_picker(final_query, results)
+      M.show_result_popup(final_query, results)
     end
   else
     vim.notify("No word under cursor", vim.log.levels.WARN)
@@ -257,7 +230,7 @@ function M.search_language()
   
   local results, final_query = M.fetch_cheat_sheet(lang)
   if results then
-    M.show_result_picker(final_query, results)
+    M.show_result_popup(final_query, results)
   end
 end
 
